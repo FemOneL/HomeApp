@@ -20,10 +20,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class ReviewController {
     private Parent root;
@@ -110,6 +107,7 @@ public class ReviewController {
         int fRange = 0, sRange = 0;
         radioShowAll.setToggleGroup(group);
         radioShowInRange.setToggleGroup(group);
+        appliances.sort(Comparator.comparing(Appliance::getPower));
         if (radioShowAll.isSelected()){
             listView.getItems().clear();
             listView.getItems().addAll(appliances);

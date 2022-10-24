@@ -5,5 +5,5 @@ public class Configs {
     protected String dbPort = "3306";
     protected String dbUser = "root";
     protected String dbPass = "nfhfc123";
-    protected String dbName = "homeapp";
+    protected String dbName = "mydb";
 }

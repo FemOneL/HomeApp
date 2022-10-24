@@ -40,7 +40,7 @@ public class AddController {
 
     @FXML
     void createAppliance(ActionEvent event) {
-        DatabaseHandler databaseHandler =  new DatabaseHandler();
+        DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
         Appliance appliance;
         int power = 0;
         if (!modelText.getText().trim().isEmpty()
@@ -63,8 +63,9 @@ public class AddController {
         appliance = new Appliance(choiseBox.getValue().trim(), modelText.getText().trim(),
                 companyText.getText().trim(), power, "off");
         try {
-            databaseHandler.writeInDb(appliance);
-        } catch (SQLException | ClassNotFoundException e) {
+            databaseHandler.AddApplianceInDb(appliance);
+        } catch (SQLException e) {
+            errorLabel.setText("Something go wrong, please try again");
             e.printStackTrace();
         }
         errorLabel.setText("");

@@ -2,8 +2,6 @@ package com.coursework.homeapp3_0;
 
 import com.coursework.homeapp3_0.database.Appliance;
 import com.coursework.homeapp3_0.database.DatabaseHandler;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -18,14 +16,16 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.ResourceBundle;
 
 public class ReviewController {
     private Parent root;
-    File file;
-    List<Appliance> appliances = new ArrayList<>();
+    private static final String IMAGE_PATH = "src/main/resources/com/coursework/homeapp3_0/pictures/";
+    File file = new File(IMAGE_PATH + "appliances.png");
+    List<Appliance> appliances;
     Appliance currentAppliance;
     ToggleGroup group = new ToggleGroup();
 
@@ -66,19 +66,15 @@ public class ReviewController {
     }
 
     @FXML
-    void removeAppliance(ActionEvent event){
-        DatabaseHandler databaseHandler = new DatabaseHandler();
-        if (listView.getSelectionModel().isEmpty())
+    void removeAppliance(ActionEvent event) {
+        DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
+        if (listView.getSelectionModel().isEmpty()) {
             return;
-        try {
-
-            databaseHandler.removeFromDb(currentAppliance);
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
         }
+        databaseHandler.removeFromDb(currentAppliance);
         appliances.remove(currentAppliance);
         infoLabel.setText("");
-        file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/appliances.png");
+        file = new File(IMAGE_PATH + "appliances.png");
         onButton.setStyle("-fx-background-color: yellow");
         imageView.setImage(new Image(file.toURI().toString()));
         listView.getItems().clear();
@@ -86,101 +82,75 @@ public class ReviewController {
     }
 
     @FXML
-    void plugInAppliance(ActionEvent event) throws SQLException, ClassNotFoundException {
-        DatabaseHandler databaseHandler = new DatabaseHandler();
+    void plugInAppliance(ActionEvent event) {
+        DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
         if (currentAppliance == null)
             return;
-        if (currentAppliance.getStatus().equals("on")){
+        if (currentAppliance.getStatus().equals("on")) {
             onButton.setStyle("-fx-background-color: red");
             currentAppliance.setStatus("off");
-            databaseHandler.changeInDb(currentAppliance);
         } else {
             onButton.setStyle("-fx-background-color: green");
             currentAppliance.setStatus("on");
-            databaseHandler.changeInDb(currentAppliance);
         }
+        databaseHandler.changeStatusInDb(currentAppliance);
         infoLabel.setText(currentAppliance.showCharacteristic());
     }
 
     @FXML
-    void showInRange(ActionEvent event){
-        int fRange = 0, sRange = 0;
+    void showInRange(ActionEvent event) {
+        DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
+        int fRange;
+        int sRange;
         radioShowAll.setToggleGroup(group);
         radioShowInRange.setToggleGroup(group);
-        appliances.sort(Comparator.comparing(Appliance::getPower));
-        if (radioShowAll.isSelected()){
+        if (radioShowAll.isSelected()) {
             listView.getItems().clear();
             listView.getItems().addAll(appliances);
-        } else{
-            if (!range1.getText().trim().isEmpty() && !range2.getText().trim().isEmpty()){
+        } else {
+            if (!range1.getText().trim().isEmpty() && !range2.getText().trim().isEmpty()) {
                 try {
                     fRange = Integer.parseInt(range1.getText());
                     sRange = Integer.parseInt(range2.getText());
-                }catch (NumberFormatException e){
-                    errorLabel.setText("Please, enter integer number of range");
-                    infoLabel.setText("");
-                    onButton.setStyle("-fx-background-color: yellow");
-                    file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/appliances.png");
-                    imageView.setImage(new Image(file.toURI().toString()));
-                    listView.getItems().clear();
-                    radioShowAll.fire();
+                } catch (NumberFormatException e) {
+                    errorRange();
                     return;
                 }
-            }else {
-                errorLabel.setText("Please, enter any number of range");
-                infoLabel.setText("");
-                onButton.setStyle("-fx-background-color: yellow");
-                file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/appliances.png");
-                imageView.setImage(new Image(file.toURI().toString()));
-                listView.getItems().clear();
-                radioShowAll.fire();
+            } else {
+                errorRange();
                 return;
             }
             listView.getItems().clear();
-            for (Appliance app : appliances){
-                if (app.getPower() >= fRange && app.getPower() <= sRange) {
-                    listView.getItems().add(app);
-                }
-            }
+            listView.getItems().addAll(databaseHandler.getAllInRange(fRange, sRange));
         }
     }
 
-    @FXML
-    void initialize() throws SQLException, ClassNotFoundException {
-        DatabaseHandler databaseHandler = new DatabaseHandler();
-        ResultSet resultSet = databaseHandler.getFromDb();
-        int iter = 0;
-        while (resultSet.next()) {
-            appliances.add(new Appliance());
-            appliances.get(iter).setName(resultSet.getString(2));
-            appliances.get(iter).setModel(resultSet.getString(3));
-            appliances.get(iter).setCompany(resultSet.getString(4));
-            appliances.get(iter).setPower(resultSet.getInt(5));
-            appliances.get(iter).setStatus(resultSet.getString(6));
-            iter++;
-        }
+    public void errorRange() {
+        errorLabel.setText("Please, enter any number of range");
+        infoLabel.setText("");
+        onButton.setStyle("-fx-background-color: yellow");
+        file = new File(IMAGE_PATH + "appliances.png");
+        imageView.setImage(new Image(file.toURI().toString()));
+        listView.getItems().clear();
         radioShowAll.fire();
-        listView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Appliance>() {
-            @Override
-            public void changed(ObservableValue<? extends Appliance> observableValue, Appliance appliance, Appliance t1) {
-                currentAppliance = listView.getSelectionModel().getSelectedItem();
-                if (currentAppliance != null) {
-                    infoLabel.setText(currentAppliance.showCharacteristic());
-                    if (currentAppliance.getName().equalsIgnoreCase("microwave"))
-                        file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/microwave.png");
-                    else if (currentAppliance.getName().equalsIgnoreCase("refrigerator"))
-                        file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/refrigerator.png");
-                    else if(currentAppliance.getName().equalsIgnoreCase("washing machine"))
-                        file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/washing machine.png");
-                    else
-                        file = new File("src/main/resources/com/coursework/homeapp3_0/pictures/appliances.png");
-                    Image image = new Image(file.toURI().toString());
-                    imageView.setImage(image);
-                    if (currentAppliance.getStatus().equals("off"))
-                        onButton.setStyle("-fx-background-color: red");
-                    else
-                        onButton.setStyle("-fx-background-color: green");
-                }
+    }
+
+    @FXML
+    void initialize() {
+        DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
+        appliances = new ArrayList<>(databaseHandler.getAllFromDb());
+        radioShowAll.fire();
+        listView.getSelectionModel().selectedItemProperty().addListener((observableValue, appliance, t1) -> {
+            currentAppliance = listView.getSelectionModel().getSelectedItem();
+            if (currentAppliance != null) {
+                infoLabel.setText(currentAppliance.showCharacteristic());
+                file = new File(IMAGE_PATH + currentAppliance.getType() + ".png");
+                Image image = new Image(file.toURI().toString());
+                imageView.setImage(image);
+                if (currentAppliance.getStatus().equals("off"))
+                    onButton.setStyle("-fx-background-color: red");
+                else
+                    onButton.setStyle("-fx-background-color: green");
             }
         });
     }
